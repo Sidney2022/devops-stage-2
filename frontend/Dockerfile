@@ -1,24 +1,30 @@
-# # Use the official Node.js image
-# FROM node:14 as build
+# Use an official node image as the base image
+FROM node:14-alpine
 
-# # Set working directory
-# WORKDIR /app
+# Set the working directory
+WORKDIR /app
 
-# # Install dependencies
-# COPY frontend/package*.json ./
-# RUN npm install
+# Copy the package.json and package-lock.json files
+COPY package*.json ./
 
-# # Copy app source
-# COPY frontend ./
+# Install dependencies
+RUN npm install
 
-# # Build app
-# RUN npm run build
+# Copy the rest of the application code
+COPY . .
 
-# # Production environment
-# FROM nginx:alpine
-# COPY --from=build /app/build /usr/share/nginx/html
-# EXPOSE 80
-# CMD ["nginx", "-g", "daemon off;"]
+# Build the React app
+RUN npm run build
+
+# Use a lightweight web server to serve the React app
+FROM nginx:alpine
+COPY --from=build-stage /app/build /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start the web server
+CMD ["nginx", "-g", "daemon off;"]
 
 
 # Use an official node image as the base image
@@ -39,8 +45,9 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production environment
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Expose the port the app runs on
+EXPOSE 3000
+
+# Start the application
+CMD ["npm", "start"]
+
