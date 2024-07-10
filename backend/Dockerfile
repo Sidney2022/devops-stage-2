@@ -1,18 +1,21 @@
-# Use Python Slim image as base
-FROM python:3.9-slim AS build
+# Use the official Python image
+FROM python:3.9-slim
 
 # Set working directory
 WORKDIR /app
 
+# Install poetry
+RUN pip install poetry
+
+# Copy poetry files
+COPY backend/pyproject.toml backend/poetry.lock* ./
+
 # Install dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN poetry install --no-dev
 
-# Copy source code
-COPY . .
-
-# Port to expose
-EXPOSE 8000
+# Copy the rest of the application
+COPY backend .
 
 # Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+

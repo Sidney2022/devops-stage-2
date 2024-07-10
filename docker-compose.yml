@@ -2,68 +2,26 @@ version: '3.8'
 
 services:
   traefik:
-    image: traefik:v2.4
+    image: traefik:v2.5
     command:
-      - "--api.insecure=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=your-email@hng_devops.crabdance.com"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
-      - "443:443"
+      - "8080:8080"  # Dashboard
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./letsencrypt:/letsencrypt"
-    networks:
-      - web
+      - "/var/run/docker.sock:/var/run/docker.sock"
 
   frontend:
-    build:
-      context: ./frontend
+    build: ./frontend
     labels:
+      - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`hng_devops.crabdance.com`)"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
-    networks:
-      - web
 
   backend:
-    build:
-      context: ./backend
-    environment:
-      - POSTGRES_SERVER=db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=mydatabase
+    build: ./backend
     labels:
-      - "traefik.http.routers.backend.rule=Host(`hng_devops.crabdance.com`) && (PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/redoc`))"
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`hng_devops.crabdance.com`) && PathPrefix(`/api`)"
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
-    networks:
-      - web
-
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - web
-
-  adminer:
-    image: adminer
-    ports:
-      - "8080:8080"
-    networks:
-      - web
-
-networks:
-  web:
-
-volumes:
-  postgres_data:
