@@ -1,37 +1,70 @@
+# docker-compose.yml
 version: '3.8'
 
 services:
   frontend:
     build:
       context: ./frontend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`hng_devops.crabdance.com`)"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    networks:
+      - webnet
 
   backend:
     build:
       context: ./backend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`hng_devops.crabdance.com`) && PathPrefix(`/api`)"
-      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    networks:
+      - webnet
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    env_file:
+      - ./backend/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - webnet
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      - ADMINER_DEFAULT_SERVER=db
+    networks:
+      - webnet
 
   traefik:
-    image: traefik:v2.5
+    image: traefik:v2.4
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
-      - "--entryPoints.web.address=:80"
+      - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
-      - "8081:8081"
+      - "8080:8080"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "/etc/traefik/traefik.yml:/traefik.yml"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik.yml:/etc/traefik/traefik.yml"
+      - "./traefik_dynamic.yml:/etc/traefik/traefik_dynamic.yml"
     networks:
-      - web
+      - webnet
+
+volumes:
+  postgres_data:
 
 networks:
-  web:
-    external: true
+  webnet:

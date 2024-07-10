@@ -1,0 +1,25 @@
+# traefik_dynamic.yml
+http:
+  routers:
+    frontend:
+      rule: "Host(`hng-devops.crabdance.com`)"
+      service: frontend
+      entryPoints:
+        - web
+
+    backend:
+      rule: "Host(`hng-devops.crabdance.com`) && PathPrefix(`/api`, `/docs`, `/redoc`)"
+      service: backend
+      entryPoints:
+        - web
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:3000"
+
+    backend:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000"
