@@ -1,22 +1,21 @@
-# Stage 1: Build the React application
-FROM node:14 as build
+# Use Node.js LTS image as base
+FROM node:lts AS build
 
+# Set working directory
 WORKDIR /app
 
-COPY package.json ./
-COPY package-lock.json ./
-
+# Install dependencies
+COPY package*.json ./
 RUN npm install
 
-COPY . ./
+# Copy source code
+COPY . .
 
+# Build frontend
 RUN npm run build
 
-# Stage 2: Serve the React application
-FROM nginx:alpine
-
+# Production environment
+FROM nginx:stable-alpine
 COPY --from=build /app/build /usr/share/nginx/html
-
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
